@@ -1,6 +1,7 @@
 package br.com.wagnerandrade.microservice.alura.loja.core.resources;
 
 import br.com.wagnerandrade.microservice.alura.loja.core.services.CompraService;
+import br.com.wagnerandrade.microservice.alura.loja.core.transport.CompraDTO;
 import br.com.wagnerandrade.microservice.alura.loja.core.transport.requests.CompraPostRequestDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,9 +18,8 @@ public class CompraResource {
     private final CompraService compraService;
 
     @PostMapping
-    public ResponseEntity<?> salvar(@RequestBody CompraPostRequestDTO compra) {
-        this.compraService.realizaCompra(compra);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<CompraDTO> salvar(@RequestBody CompraPostRequestDTO compra) {
+        return ResponseEntity.ok().body(this.compraService.realizaCompra(compra));
     }
 
 }
