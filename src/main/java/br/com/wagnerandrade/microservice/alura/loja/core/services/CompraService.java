@@ -6,17 +6,25 @@ import br.com.wagnerandrade.microservice.alura.loja.core.transport.InfoFornecedo
 import br.com.wagnerandrade.microservice.alura.loja.core.transport.InfoPedidoDTO;
 import br.com.wagnerandrade.microservice.alura.loja.core.transport.requests.CompraPostRequestDTO;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
 public class CompraService {
 
+    private static final Logger LOG = LoggerFactory.getLogger(CompraService.class);
+
     private final FornecedorClient fornecedorClient;
 
     public CompraDTO realizaCompra(CompraPostRequestDTO compra) {
-        InfoFornecedorDTO info = this.fornecedorClient.getInfoPorEstado(compra.getEndereco().getEstado());
+        String estado = compra.getEndereco().getEstado();
 
+        LOG.info("Buscando informações do fornecedor de {}" + estado);
+        InfoFornecedorDTO info = this.fornecedorClient.getInfoPorEstado(estado);
+
+        LOG.info("Realizando um pedido");
         InfoPedidoDTO pedido = this.fornecedorClient.realizaPedido(compra.getItens());
 
         System.out.println(info.getEndereco());
