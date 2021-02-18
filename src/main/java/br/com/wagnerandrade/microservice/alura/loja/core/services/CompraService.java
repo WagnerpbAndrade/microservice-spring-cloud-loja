@@ -8,6 +8,9 @@ import br.com.wagnerandrade.microservice.alura.loja.core.transport.requests.Comp
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -18,6 +21,10 @@ public class CompraService {
 
     private final FornecedorClient fornecedorClient;
 
+    @Retryable(
+            value = RuntimeException.class,
+            backoff = @Backoff(delay = 50, maxDelay = 100)
+    )
     public CompraDTO realizaCompra(CompraPostRequestDTO compra) {
         String estado = compra.getEndereco().getEstado();
 
@@ -36,5 +43,12 @@ public class CompraService {
                 .build();
 
         return compraSalva;
+    }
+
+    @Recover
+    public CompraDTO realizaCompraFallback(RuntimeException exception, CompraDTO compra) {
+        LOG.info("Entrou no Fallback");
+        CompraDTO compraFallback = CompraDTO.builder().enderecoDestino(compra.getEnderecoDestino()).build();
+        return compraFallback;
     }
 }

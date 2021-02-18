@@ -18,7 +18,7 @@ public class CompraResource {
     private final CompraService compraService;
 
     @PostMapping
-    public ResponseEntity<CompraDTO> salvar(@RequestBody CompraPostRequestDTO compra) {
+    public ResponseEntity<?> salvar(@RequestBody CompraPostRequestDTO compra) {
         return ResponseEntity.ok().body(this.compraService.realizaCompra(compra));
     }
 
