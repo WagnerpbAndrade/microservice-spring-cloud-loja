@@ -20,6 +20,7 @@ public class LojaApplication {
     }
 
     public static void main(String[] args) {
+        System.setProperty("spring.cloud.bootstrap.enabled","true");
         SpringApplication.run(LojaApplication.class, args);
     }
 

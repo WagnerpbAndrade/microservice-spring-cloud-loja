@@ -1,6 +1,9 @@
 package br.com.wagnerandrade.microservice.alura.loja.core.services;
 
 import br.com.wagnerandrade.microservice.alura.loja.core.client.FornecedorClient;
+import br.com.wagnerandrade.microservice.alura.loja.core.entities.Compra;
+import br.com.wagnerandrade.microservice.alura.loja.core.mappers.CompraMapper;
+import br.com.wagnerandrade.microservice.alura.loja.core.repositories.CompraRepository;
 import br.com.wagnerandrade.microservice.alura.loja.core.transport.CompraDTO;
 import br.com.wagnerandrade.microservice.alura.loja.core.transport.InfoFornecedorDTO;
 import br.com.wagnerandrade.microservice.alura.loja.core.transport.InfoPedidoDTO;
@@ -20,6 +23,16 @@ public class CompraService {
     private static final Logger LOG = LoggerFactory.getLogger(CompraService.class);
 
     private final FornecedorClient fornecedorClient;
+    private final CompraRepository compraRepository;
+    private final CompraMapper compraMapper;
+
+    @Retryable(
+            value = RuntimeException.class,
+            backoff = @Backoff(delay = 50, maxDelay = 100)
+    )
+    public CompraDTO getById(Long id) {
+        return this.compraMapper.toCompraDTO(this.compraRepository.findById(id).orElse(Compra.builder().build()));
+    }
 
     @Retryable(
             value = RuntimeException.class,
@@ -36,13 +49,13 @@ public class CompraService {
 
         System.out.println(info.getEndereco());
 
-        CompraDTO compraSalva = CompraDTO.builder()
+        Compra compraSalva = Compra.builder()
                 .pedidoId(pedido.getId())
                 .tempoDePreparo(pedido.getTempoDePreparo())
                 .enderecoDestino(compra.getEndereco().toString())
                 .build();
 
-        return compraSalva;
+        return this.compraMapper.toCompraDTO(this.compraRepository.save(compraSalva));
     }
 
     @Recover
