@@ -1,12 +1,11 @@
 package br.com.wagnerandrade.microservice.alura.loja.core.services;
 
 import br.com.wagnerandrade.microservice.alura.loja.core.client.FornecedorClient;
+import br.com.wagnerandrade.microservice.alura.loja.core.client.TransportadorClient;
 import br.com.wagnerandrade.microservice.alura.loja.core.entities.Compra;
 import br.com.wagnerandrade.microservice.alura.loja.core.mappers.CompraMapper;
 import br.com.wagnerandrade.microservice.alura.loja.core.repositories.CompraRepository;
-import br.com.wagnerandrade.microservice.alura.loja.core.transport.CompraDTO;
-import br.com.wagnerandrade.microservice.alura.loja.core.transport.InfoFornecedorDTO;
-import br.com.wagnerandrade.microservice.alura.loja.core.transport.InfoPedidoDTO;
+import br.com.wagnerandrade.microservice.alura.loja.core.transport.*;
 import br.com.wagnerandrade.microservice.alura.loja.core.transport.requests.CompraPostRequestDTO;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -16,6 +15,8 @@ import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+
 @Service
 @RequiredArgsConstructor
 public class CompraService {
@@ -23,7 +24,11 @@ public class CompraService {
     private static final Logger LOG = LoggerFactory.getLogger(CompraService.class);
 
     private final FornecedorClient fornecedorClient;
+
     private final CompraRepository compraRepository;
+
+    private final TransportadorClient transportadorClient;
+
     private final CompraMapper compraMapper;
 
     @Retryable(
@@ -47,12 +52,20 @@ public class CompraService {
         LOG.info("Realizando um pedido");
         InfoPedidoDTO pedido = this.fornecedorClient.realizaPedido(compra.getItens());
 
-        System.out.println(info.getEndereco());
+        InfoEntregaDTO entregaDTO = InfoEntregaDTO.builder()
+                .pedidoId(pedido.getId())
+                .dataParaEntrega(LocalDate.now().plusDays(pedido.getTempoDePreparo()))
+                .enderecoOrigem(info.getEndereco())
+                .enderecoDestino(compra.getEndereco().toString())
+                .build();
+        VoucherDTO voucherDTO = this.transportadorClient.reservaEntrega(entregaDTO);
 
         Compra compraSalva = Compra.builder()
                 .pedidoId(pedido.getId())
                 .tempoDePreparo(pedido.getTempoDePreparo())
                 .enderecoDestino(compra.getEndereco().toString())
+                .voucher(voucherDTO.getNumero())
+                .dataParaEntrega(voucherDTO.getPrevisaoParaEntrega())
                 .build();
 
         return this.compraMapper.toCompraDTO(this.compraRepository.save(compraSalva));
