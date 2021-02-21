@@ -8,6 +8,7 @@ import br.com.wagnerandrade.microservice.alura.loja.core.mappers.CompraMapper;
 import br.com.wagnerandrade.microservice.alura.loja.core.repositories.CompraRepository;
 import br.com.wagnerandrade.microservice.alura.loja.core.transport.*;
 import br.com.wagnerandrade.microservice.alura.loja.core.transport.requests.CompraPostRequestDTO;
+import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,18 +33,12 @@ public class CompraService {
 
     private final CompraMapper compraMapper;
 
-    @Retryable(
-            value = RuntimeException.class,
-            backoff = @Backoff(delay = 50, maxDelay = 100)
-    )
+    @HystrixCommand
     public CompraDTO getById(Long id) {
         return this.compraMapper.toCompraDTO(this.compraRepository.findById(id).orElse(new Compra()));
     }
 
-    @Retryable(
-            value = RuntimeException.class,
-            backoff = @Backoff(delay = 50, maxDelay = 100)
-    )
+    @HystrixCommand(fallbackMethod = "realizaCompraFallback")
     public CompraDTO realizaCompra(CompraPostRequestDTO compra) {
         Compra compraSalva = new Compra();
 
@@ -76,10 +71,10 @@ public class CompraService {
         return this.compraMapper.toCompraDTO(this.compraRepository.save(compraSalva));
     }
 
-    @Recover
-    public CompraDTO realizaCompraFallback(RuntimeException exception, CompraDTO compra) {
+
+    public CompraDTO realizaCompraFallback(CompraPostRequestDTO compra) {
         LOG.info("Entrou no Fallback");
-        CompraDTO compraFallback = CompraDTO.builder().enderecoDestino(compra.getEnderecoDestino()).build();
+        CompraDTO compraFallback = CompraDTO.builder().enderecoDestino(compra.getEndereco().getEstado()).build();
         return compraFallback;
     }
 }
