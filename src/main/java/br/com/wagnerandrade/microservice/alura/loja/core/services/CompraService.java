@@ -30,12 +30,15 @@ public class CompraService {
 
     private final CompraMapper compraMapper;
 
-    @HystrixCommand
+    @HystrixCommand(threadPoolKey = "getByIdThreadPool")
     public CompraDTO getById(Long id) {
         return this.compraMapper.toCompraDTO(this.compraRepository.findById(id).orElse(new Compra()));
     }
 
-    @HystrixCommand(fallbackMethod = "realizaCompraFallback")
+    @HystrixCommand(
+            fallbackMethod = "realizaCompraFallback",
+            threadPoolKey = "realizaCompraThreadPool"
+    )
     public CompraDTO realizaCompra(CompraPostRequestDTO compra) {
         Compra compraSalva = new Compra();
 
