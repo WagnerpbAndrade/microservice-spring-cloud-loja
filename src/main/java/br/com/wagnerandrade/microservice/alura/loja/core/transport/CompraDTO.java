@@ -1,7 +1,10 @@
 package br.com.wagnerandrade.microservice.alura.loja.core.transport;
 
+import br.com.wagnerandrade.microservice.alura.loja.core.enums.CompraStateEnum;
 import lombok.*;
 
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import java.time.LocalDate;
 
 @Getter
@@ -19,4 +22,7 @@ public class CompraDTO {
     private Long voucher;
 
     private LocalDate dataParaEntrega;
+
+    @Enumerated(EnumType.STRING)
+    private CompraStateEnum state;
 }

@@ -1,10 +1,10 @@
 package br.com.wagnerandrade.microservice.alura.loja.core.entities;
 
+import br.com.wagnerandrade.microservice.alura.loja.core.enums.CompraStateEnum;
 import br.com.wagnerandrade.microservice.alura.loja.core.transport.VoucherDTO;
 import lombok.*;
 
-import javax.persistence.Entity;
-import javax.persistence.Id;
+import javax.persistence.*;
 import java.time.LocalDate;
 
 @Entity
@@ -12,10 +12,12 @@ import java.time.LocalDate;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Compra {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
     private Long pedidoId;
 
     private Integer tempoDePreparo;
@@ -23,6 +25,9 @@ public class Compra {
     private String enderecoDestino;
 
     private Long voucher;
+
+    @Enumerated(EnumType.STRING)
+    private CompraStateEnum state;
 
     private LocalDate dataParaEntrega;
 }

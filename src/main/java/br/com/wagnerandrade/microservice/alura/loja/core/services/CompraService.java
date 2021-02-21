@@ -3,6 +3,7 @@ package br.com.wagnerandrade.microservice.alura.loja.core.services;
 import br.com.wagnerandrade.microservice.alura.loja.core.client.FornecedorClient;
 import br.com.wagnerandrade.microservice.alura.loja.core.client.TransportadorClient;
 import br.com.wagnerandrade.microservice.alura.loja.core.entities.Compra;
+import br.com.wagnerandrade.microservice.alura.loja.core.enums.CompraStateEnum;
 import br.com.wagnerandrade.microservice.alura.loja.core.mappers.CompraMapper;
 import br.com.wagnerandrade.microservice.alura.loja.core.repositories.CompraRepository;
 import br.com.wagnerandrade.microservice.alura.loja.core.transport.*;
@@ -36,7 +37,7 @@ public class CompraService {
             backoff = @Backoff(delay = 50, maxDelay = 100)
     )
     public CompraDTO getById(Long id) {
-        return this.compraMapper.toCompraDTO(this.compraRepository.findById(id).orElse(Compra.builder().build()));
+        return this.compraMapper.toCompraDTO(this.compraRepository.findById(id).orElse(new Compra()));
     }
 
     @Retryable(
@@ -44,13 +45,20 @@ public class CompraService {
             backoff = @Backoff(delay = 50, maxDelay = 100)
     )
     public CompraDTO realizaCompra(CompraPostRequestDTO compra) {
+        Compra compraSalva = new Compra();
+
+        compraSalva.setState(CompraStateEnum.RECEBIDO);
+        compraSalva.setEnderecoDestino(compra.getEndereco().toString());
+        this.compraRepository.save(compraSalva);
+
         String estado = compra.getEndereco().getEstado();
-
-        LOG.info("Buscando informações do fornecedor de {}" + estado);
         InfoFornecedorDTO info = this.fornecedorClient.getInfoPorEstado(estado);
-
-        LOG.info("Realizando um pedido");
         InfoPedidoDTO pedido = this.fornecedorClient.realizaPedido(compra.getItens());
+
+        compraSalva.setState(CompraStateEnum.PEDIDO_REALIZADO);
+        compraSalva.setPedidoId(pedido.getId());
+        compraSalva.setTempoDePreparo(pedido.getTempoDePreparo());
+        this.compraRepository.save(compraSalva);
 
         InfoEntregaDTO entregaDTO = InfoEntregaDTO.builder()
                 .pedidoId(pedido.getId())
@@ -60,13 +68,10 @@ public class CompraService {
                 .build();
         VoucherDTO voucherDTO = this.transportadorClient.reservaEntrega(entregaDTO);
 
-        Compra compraSalva = Compra.builder()
-                .pedidoId(pedido.getId())
-                .tempoDePreparo(pedido.getTempoDePreparo())
-                .enderecoDestino(compra.getEndereco().toString())
-                .voucher(voucherDTO.getNumero())
-                .dataParaEntrega(voucherDTO.getPrevisaoParaEntrega())
-                .build();
+        compraSalva.setState(CompraStateEnum.RESERVA_ENTREGA_REALIZADA);
+        compraSalva.setVoucher(voucherDTO.getNumero());
+        compraSalva.setDataParaEntrega(voucherDTO.getPrevisaoParaEntrega());
+        this.compraRepository.save(compraSalva);
 
         return this.compraMapper.toCompraDTO(this.compraRepository.save(compraSalva));
     }
